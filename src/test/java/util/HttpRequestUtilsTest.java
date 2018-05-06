@@ -11,6 +11,15 @@ import util.HttpRequestUtils.Pair;
 
 public class HttpRequestUtilsTest {
     @Test
+    public void getUrlString() {
+        String requestLine = "GET /index.html HTTP1.1";
+        assertThat("/index.html", is(HttpRequestUtils.getUrl(requestLine)));
+
+        requestLine = "GET /user/create HTTP1.1";
+        assertThat("/user/create", is(HttpRequestUtils.getUrl(requestLine)));
+    }
+
+    @Test
     public void parseQueryString() {
         String queryString = "userId=javajigi";
         Map<String, String> parameters = HttpRequestUtils.parseQueryString(queryString);
