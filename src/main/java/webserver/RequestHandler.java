@@ -11,6 +11,7 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Map;
 
 public class RequestHandler extends Thread {
@@ -37,12 +38,17 @@ public class RequestHandler extends Thread {
 
             String url = HttpRequestUtils.getUrl(line);
             int contentLength = 0;
+            boolean isLogin = false;
             while (!"".equals(line)) {
                 //log.info("header : {}", line);
                 line = br.readLine();
                 if (line.contains("Content-Length")) {
                     HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(line);
                     contentLength = Integer.parseInt(pair.getValue());
+                } else if (line.contains("Cookie")) {
+                    HttpRequestUtils.Pair cookieHeaders = HttpRequestUtils.parseHeader(line);
+                    Map<String, String> cookies = HttpRequestUtils.parseCookies(cookieHeaders.getValue());
+                    isLogin = Boolean.parseBoolean(cookies.get("logined"));
                 }
             }
 
@@ -73,10 +79,46 @@ public class RequestHandler extends Thread {
                 } else {
                     responseResource(out, "/user/login_failed.html");
                 }
+            } else if ("/user/list".equals(url)) {
+                if (isLogin) {
+                    Collection<User> users = DataBase.findAll();
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("<table border='1'>");
+                    for (User user : users) {
+                        sb.append("<tr>");
+                        sb.append("<td>" + user.getUserId() + "</td>");
+                        sb.append("<td>" + user.getName() + "</td>");
+                        sb.append("<td>" + user.getEmail() + "</td>");
+                        sb.append("<tr>");
+                    }
+                    sb.append("</table>");
+                    byte[] body = sb.toString().getBytes();
+                    DataOutputStream dos = new DataOutputStream(out);
+                    response200Header(dos, body.length);
+                    responseBody(dos, body);
+                } else {
+                    responseResource(out, "/user/login.html");
+                }
+            } else if (url.endsWith(".css")) {
+                DataOutputStream dos = new DataOutputStream(out);
+                byte[] body = Files.readAllBytes(Paths.get("./webapp" + url));
+                response200CssHeader(dos, body.length);
+                responseBody(dos, body);
             } else {
                 responseResource(out, url);
             }
 
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void response200CssHeader(DataOutputStream dos, int lengthOfBodyContent) {
+        try {
+            dos.writeBytes("HTTP/1.1 200 OK \r\n");
+            dos.writeBytes("Content-Type: text/css \r\n");
+            dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
+            dos.writeBytes("\r\n");
         } catch (IOException e) {
             log.error(e.getMessage());
         }
