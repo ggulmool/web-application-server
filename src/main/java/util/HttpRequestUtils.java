@@ -10,13 +10,19 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class HttpRequestUtils {
+
     private static final Logger log = LoggerFactory.getLogger(HttpRequestUtils.class);
 
     public static String getUrl(String firstLine) {
         String[] tokens = firstLine.split(" ");
-        String path = tokens[1];
-        log.info("path : {}", path);
-        return path;
+        String url = tokens[1];
+        log.info("path : {}", url);
+        return url;
+    }
+
+    public static String getQueryString(String url) {
+        int index = url.indexOf("?");
+        return url.substring(index + 1);
     }
 
     /**

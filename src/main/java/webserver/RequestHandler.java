@@ -1,5 +1,7 @@
 package webserver;
 
+import db.DataBase;
+import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
@@ -8,6 +10,7 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -37,10 +40,22 @@ public class RequestHandler extends Thread {
 //            }
 
             DataOutputStream dos = new DataOutputStream(out);
-            String path = HttpRequestUtils.getUrl(line);
-            byte[] body = Files.readAllBytes(Paths.get("./webapp" + path));
+            String url = HttpRequestUtils.getUrl(line);
+
+            if (url.startsWith("/user/create")) {
+                String queryString = HttpRequestUtils.getQueryString(url);
+                Map<String, String> req = HttpRequestUtils.parseQueryString(queryString);
+                User user = new User(req.get("userId"), req.get("password"), req.get("name"), req.get("email"));
+                log.info("user : {}", user);
+
+                DataBase.addUser(user);
+                url = "/index.html";
+            }
+
+            byte[] body = Files.readAllBytes(Paths.get("./webapp" + url));
             response200Header(dos, body.length);
             responseBody(dos, body);
+
         } catch (IOException e) {
             log.error(e.getMessage());
         }
