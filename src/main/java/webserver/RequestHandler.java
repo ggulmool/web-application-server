@@ -5,6 +5,7 @@ import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
+import util.IOUtils;
 
 import java.io.*;
 import java.net.Socket;
@@ -34,17 +35,20 @@ public class RequestHandler extends Thread {
                 return;
             }
 
-//            while (!"".equals(line)) {
-//                line = br.readLine();
-//                log.info("header : {}", line);
-//            }
-
-            DataOutputStream dos = new DataOutputStream(out);
             String url = HttpRequestUtils.getUrl(line);
+            int contentLength = 0;
+            while (!"".equals(line)) {
+                log.info("header : {}", line);
+                line = br.readLine();
+                if (line.contains("Content-Length")) {
+                    HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(line);
+                    contentLength = Integer.parseInt(pair.getValue());
+                }
+            }
 
             if (url.startsWith("/user/create")) {
-                String queryString = HttpRequestUtils.getQueryString(url);
-                Map<String, String> req = HttpRequestUtils.parseQueryString(queryString);
+                String body = IOUtils.readData(br, contentLength);
+                Map<String, String> req = HttpRequestUtils.parseQueryString(body);
                 User user = new User(req.get("userId"), req.get("password"), req.get("name"), req.get("email"));
                 log.info("user : {}", user);
 
@@ -52,6 +56,7 @@ public class RequestHandler extends Thread {
                 url = "/index.html";
             }
 
+            DataOutputStream dos = new DataOutputStream(out);
             byte[] body = Files.readAllBytes(Paths.get("./webapp" + url));
             response200Header(dos, body.length);
             responseBody(dos, body);

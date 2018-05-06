@@ -19,13 +19,6 @@ public class HttpRequestUtilsTest {
         assertThat("/user/create", is(HttpRequestUtils.getUrl(requestLine)));
     }
 
-
-    @Test
-    public void getQueryString() {
-        String url = "/user/create?userId=thekarin&password=1234&name=kny&email=thekarin@naver.com";
-        assertThat("userId=thekarin&password=1234&name=kny&email=thekarin@naver.com", is(HttpRequestUtils.getQueryString(url)));
-    }
-
     @Test
     public void parseQueryString() {
         String queryString = "userId=javajigi";

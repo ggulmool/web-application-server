@@ -15,14 +15,7 @@ public class HttpRequestUtils {
 
     public static String getUrl(String firstLine) {
         String[] tokens = firstLine.split(" ");
-        String url = tokens[1];
-        log.info("path : {}", url);
-        return url;
-    }
-
-    public static String getQueryString(String url) {
-        int index = url.indexOf("?");
-        return url.substring(index + 1);
+        return tokens[1];
     }
 
     /**
