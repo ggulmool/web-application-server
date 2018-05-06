@@ -46,7 +46,7 @@ public class RequestHandler extends Thread {
                 }
             }
 
-            if (url.startsWith("/user/create")) {
+            if ("/user/create".equals(url)) {
                 String reqBody = IOUtils.readData(br, contentLength);
                 Map<String, String> req = HttpRequestUtils.parseQueryString(reqBody);
                 User user = new User(req.get("userId"), req.get("password"), req.get("name"), req.get("email"));
@@ -57,11 +57,24 @@ public class RequestHandler extends Thread {
 
                 DataOutputStream dos = new DataOutputStream(out);
                 response302Header(dos, url);
+            } else if ("/user/login".equals(url)) {
+                String reqBody = IOUtils.readData(br, contentLength);
+                Map<String, String> req = HttpRequestUtils.parseQueryString(reqBody);
+                User loginUser = DataBase.findUserById(req.get("userId"));
+
+                if (loginUser == null) {
+                    responseResource(out, "/user/login_failed.html");
+                    return;
+                }
+
+                if (loginUser.getPassword().equals(req.get("password"))) {
+                    DataOutputStream dos = new DataOutputStream(out);
+                    response302LoginSuccessHandler(dos);
+                } else {
+                    responseResource(out, "/user/login_failed.html");
+                }
             } else {
-                DataOutputStream dos = new DataOutputStream(out);
-                byte[] body = Files.readAllBytes(Paths.get("./webapp" + url));
-                response200Header(dos, body.length);
-                responseBody(dos, body);
+                responseResource(out, url);
             }
 
         } catch (IOException e) {
@@ -80,11 +93,33 @@ public class RequestHandler extends Thread {
         }
     }
 
+    private void response302LoginSuccessHandler(DataOutputStream dos) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Redirect \r\n");
+            dos.writeBytes("Set-Cookie: logined=true \r\n");
+            dos.writeBytes("Location: /index.html \r\n");
+            dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
     private void response302Header(DataOutputStream dos, String locationUrl) {
         try {
             dos.writeBytes("HTTP/1.1 302 Redirect \r\n");
             dos.writeBytes("Location: " + locationUrl + " \r\n");
             dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    private void responseResource(OutputStream out, String url) {
+        try {
+            DataOutputStream dos = new DataOutputStream(out);
+            byte[] body = Files.readAllBytes(Paths.get("./webapp" + url));
+            response200Header(dos, body.length);
+            responseBody(dos, body);
         } catch (IOException e) {
             log.error(e.getMessage());
         }
