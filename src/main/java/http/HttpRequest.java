@@ -2,70 +2,63 @@ package http;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import util.HttpRequestUtils;
+import util.IOUtils;
 
-import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 public class HttpRequest {
 
     private static final Logger log = LoggerFactory.getLogger(HttpRequest.class);
 
-    private String method;
-    private String path;
-    private Map<String, String> headers = new HashMap<>();
-    private Map<String, String> params = new HashMap<>();
+    private RequestLine requestLine;
+    private RequestParams requestParams = new RequestParams();
+    private HttpHeaders headers;
 
-    public HttpRequest(InputStream in) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
-
-        String line = br.readLine();
-        if (line == null) {
-            return;
-        }
-        log.info("request line : {}", line);
-
-        this.method = line.split(" ")[0];
-        String url = HttpRequestUtils.getUrl(line);
-
-        if ("GET".equals(method)) {
-            int index = url.indexOf("?");
-            this.path = url.substring(0, index);
-            String queryString = url.substring(index + 1);
-            this.params = HttpRequestUtils.parseQueryString(queryString);
-        } else {
-            this.path = url;
-        }
-
-        line = br.readLine();
-        while (!"".equals(line)) {
-            log.info("header : {}", line);
-            HttpRequestUtils.Pair pair = HttpRequestUtils.parseHeader(line);
-            headers.put(pair.getKey(), pair.getValue());
-            line = br.readLine();
-        }
-
-        if ("POST".equals(method)) {
-            line = br.readLine();
-            log.info("body : {}", line);
-            this.params = HttpRequestUtils.parseQueryString(line);
+    public HttpRequest(InputStream in) {
+        try {
+            BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+            requestLine = new RequestLine(createRequestLine(br));
+            requestParams.addQueryString(requestLine.getQueryString());
+            headers = processHeaders(br);
+            requestParams.addBody(IOUtils.readData(br, headers.getContentLength()));
+        } catch (IOException e) {
+            log.error(e.getMessage());
         }
     }
 
-    public String getMethod() {
-        return method;
+    private String createRequestLine(BufferedReader br) throws IOException {
+        String line = br.readLine();
+        if (line == null) {
+            return null;
+        }
+        return line;
+    }
+
+    private HttpHeaders processHeaders(BufferedReader br) throws IOException {
+        HttpHeaders headers = new HttpHeaders();
+        String line;
+        while (!(line = br.readLine()).equals("")) {
+            headers.add(line);
+        }
+        return headers;
+    }
+
+    public HttpMethod getMethod() {
+        return requestLine.getMethod();
     }
 
     public String getPath() {
-        return path;
+        return requestLine.getPath();
     }
 
     public String getHeader(String name) {
-        return headers.get(name);
+        return headers.getHeader(name);
     }
 
     public String getParameter(String name) {
-        return params.get(name);
+        return requestParams.getParameter(name);
     }
 }

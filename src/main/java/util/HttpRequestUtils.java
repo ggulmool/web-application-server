@@ -13,11 +13,6 @@ public class HttpRequestUtils {
 
     private static final Logger log = LoggerFactory.getLogger(HttpRequestUtils.class);
 
-    public static String getUrl(String firstLine) {
-        String[] tokens = firstLine.split(" ");
-        return tokens[1];
-    }
-
     /**
      * @param queryString은
      *            URL에서 ? 이후에 전달되는 field1=value1&field2=value2 형식임
