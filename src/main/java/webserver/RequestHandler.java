@@ -1,10 +1,8 @@
 package webserver;
 
 import controller.Controller;
-import db.DataBase;
 import http.HttpRequest;
 import http.HttpResponse;
-import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import util.HttpRequestUtils;
@@ -13,8 +11,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
-import java.util.Collection;
 import java.util.Map;
+import java.util.UUID;
 
 public class RequestHandler extends Thread {
 
@@ -33,6 +31,10 @@ public class RequestHandler extends Thread {
         try (InputStream in = connection.getInputStream(); OutputStream out = connection.getOutputStream()) {
             HttpRequest request = new HttpRequest(in);
             HttpResponse response = new HttpResponse(out);
+
+            if (request.getCookies().getCookie("JSESSIONID") == null) {
+                response.addHeader("Set-Cookie", "JSESSIONID=" + UUID.randomUUID());
+            }
 
             Controller controller = RequestMapping.getController(request.getPath());
 
